@@ -35,6 +35,13 @@ export async function GET() {
       nextAuthUrl === "https://nobodiesceviri.vercel.app",
     expectedRedirect:
       "https://nobodiesceviri.vercel.app/api/auth/callback/discord",
-    tip: "Hepsi true olmalı. authUrlLooksCorrect false ise AUTH_URL'i düzelt.",
+    discordClientIdLast4: clean(process.env.AUTH_DISCORD_ID).slice(-4),
+    discordSecretLength: clean(process.env.AUTH_DISCORD_SECRET).length,
+    adminIdLast4: clean(process.env.ADMIN_DISCORD_ID).slice(-4),
+    tip: "Env tamam. Configuration hatası = Discord Portal Redirect URI veya Client Secret yanlış. Secret uzunluğu genelde 32 civarı.",
   });
+}
+
+function clean(value: string | undefined) {
+  return (value || "").trim().replace(/^["']|["']$/g, "");
 }
