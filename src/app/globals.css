@@ -1,26 +1,47 @@
 @import "tailwindcss";
 
 :root {
-  --background: #ffffff;
-  --foreground: #171717;
+  --background: #f4f6f8;
+  --foreground: #0f1419;
+  --card: #ffffff;
+  --surface: #ffffff;
+  --nav-bg: rgba(255, 255, 255, 0.82);
+  --border: rgba(15, 20, 25, 0.1);
+  --muted: #5b6570;
+  --accent: #22c55e;
+  --hero-from: #dcfce7;
+  --hero-to: #f4f6f8;
+}
+
+.dark {
+  --background: #000000;
+  --foreground: #f3f4f6;
+  --card: #111111;
+  --surface: #141414;
+  --nav-bg: rgba(10, 10, 10, 0.78);
+  --border: rgba(255, 255, 255, 0.08);
+  --muted: #9ca3af;
+  --accent: #4ade80;
+  --hero-from: #052e1a;
+  --hero-to: #000000;
 }
 
 @theme inline {
   --color-background: var(--background);
   --color-foreground: var(--foreground);
-  --font-sans: var(--font-geist-sans);
-  --font-mono: var(--font-geist-mono);
-}
-
-@media (prefers-color-scheme: dark) {
-  :root {
-    --background: #0a0a0a;
-    --foreground: #ededed;
-  }
+  --font-sans: var(--font-outfit);
 }
 
 body {
-  background: var(--background);
+  background:
+    radial-gradient(1200px 500px at 10% -10%, color-mix(in oklab, var(--accent) 16%, transparent), transparent 55%),
+    radial-gradient(900px 400px at 90% 0%, rgba(244, 114, 182, 0.08), transparent 50%),
+    var(--background);
   color: var(--foreground);
-  font-family: Arial, Helvetica, sans-serif;
+  font-family: var(--font-outfit), "Segoe UI", sans-serif;
+  min-height: 100%;
+}
+
+* {
+  border-color: var(--border);
 }

@@ -1,36 +1,55 @@
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
+# NBDSxStaffTracker
 
-## Getting Started
+Minecraft yetkili takip paneli — Next.js + Radix UI + Auth.js + MySQL.
 
-First, run the development server:
+## Local geliştirme
 
 ```bash
+npm install
 npm run dev
-# or
-yarn dev
-# or
-pnpm dev
-# or
-bun dev
 ```
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+Wizard bir kez tamamlanınca ayarlar `data/config.json` + `.env.local` + MySQL'e yazılır.
+Sonraki açılışlarda kurulum sayfasına **dönülmez**.
 
-You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
+Sıfırlamak (sadece local): http://localhost:3000/api/setup/reset
 
-This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
+## Vercel deploy
 
-## Learn More
+Vercel'de dosya sistemi kalıcı değildir. Wizard yerine **Environment Variables** kullan.
 
-To learn more about Next.js, take a look at the following resources:
+### 1) MySQL
+XAMPP localhost Vercel'den erişilemez. Uzak MySQL kullan (ör. Railway, Aiven, PlanetScale, VPS).
 
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
+### 2) Vercel → Settings → Environment Variables
 
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
+| Değişken | Örnek |
+|----------|--------|
+| `AUTH_SECRET` | rastgele uzun string |
+| `AUTH_URL` | `https://proje.vercel.app` |
+| `NEXTAUTH_URL` | `https://proje.vercel.app` |
+| `AUTH_TRUST_HOST` | `true` |
+| `AUTH_DISCORD_ID` | Discord Client ID |
+| `AUTH_DISCORD_SECRET` | Discord Client Secret |
+| `ADMIN_DISCORD_ID` | senin Discord kullanıcı ID |
+| `ADMIN_DISCORD_USERNAME` | görünen ad |
+| `DATABASE_URL` | `mysql://user:pass@host:3306/nbdsx_staff` |
+| `SETUP_COMPLETED` | `1` |
 
-## Deploy on Vercel
+`DEV_BYPASS` production'da **ekleme**.
 
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
+### 3) Discord Redirect URI
 
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
+```
+https://proje.vercel.app/api/auth/callback/discord
+```
+
+### 4) Deploy
+
+```bash
+npx vercel
+```
+
+veya GitHub bağla → otomatik deploy.
+
+İlk deploy sonrası MySQL'de `AppSettings` tablosu yoksa bir kez local wizard ile oluştur veya phpMyAdmin/SQL ile şemayı çalıştır.
