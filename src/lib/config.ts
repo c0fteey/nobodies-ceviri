@@ -166,9 +166,17 @@ export async function getConfig(): Promise<AppConfig> {
 export async function saveConfig(
   partial: Partial<AppConfig>,
 ): Promise<AppConfig> {
-  await ensureDataDir();
   const current = await getConfig();
   const next: AppConfig = { ...current, ...partial };
+
+  // Vercel'de kalıcı dosya yok — wizard yerine Environment Variables kullanılmalı
+  if (process.env.VERCEL) {
+    throw new Error(
+      "Vercel'de wizard dosyaya yazamaz. Settings → Environment Variables kullan (SETUP_COMPLETED=1).",
+    );
+  }
+
+  await ensureDataDir();
 
   const stored: StoredConfig = {
     setupCompleted: next.setupCompleted,

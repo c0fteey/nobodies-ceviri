@@ -9,30 +9,49 @@ const schema = z.object({
 });
 
 export async function POST(request: Request) {
-  const config = await getConfig();
-  if (config.setupCompleted) {
-    return NextResponse.json({ error: "Kurulum zaten tamamlandı" }, { status: 400 });
+  try {
+    if (process.env.VERCEL) {
+      return NextResponse.json(
+        {
+          error:
+            "Vercel'de wizard kullanılamaz. Environment Variables ekleyip Redeploy et.",
+        },
+        { status: 400 },
+      );
+    }
+
+    const config = await getConfig();
+    if (config.setupCompleted) {
+      return NextResponse.json(
+        { error: "Kurulum zaten tamamlandı" },
+        { status: 400 },
+      );
+    }
+
+    const body = await request.json();
+    const parsed = schema.safeParse(body);
+    if (!parsed.success) {
+      return NextResponse.json(
+        { error: parsed.error.issues[0]?.message || "Geçersiz veri" },
+        { status: 400 },
+      );
+    }
+
+    const siteUrl = parsed.data.siteUrl.replace(/\/$/, "");
+
+    await saveConfig({
+      siteUrl,
+      discordClientId: parsed.data.discordClientId.trim(),
+      discordClientSecret: parsed.data.discordClientSecret.trim(),
+    });
+
+    return NextResponse.json({
+      ok: true,
+      redirectUri: `${siteUrl}/api/auth/callback/discord`,
+    });
+  } catch (error) {
+    const message =
+      error instanceof Error ? error.message : "Discord ayarları kaydedilemedi";
+    return NextResponse.json({ error: message }, { status: 500 });
   }
-
-  const body = await request.json();
-  const parsed = schema.safeParse(body);
-  if (!parsed.success) {
-    return NextResponse.json(
-      { error: parsed.error.issues[0]?.message || "Geçersiz veri" },
-      { status: 400 },
-    );
-  }
-
-  const siteUrl = parsed.data.siteUrl.replace(/\/$/, "");
-
-  await saveConfig({
-    siteUrl,
-    discordClientId: parsed.data.discordClientId.trim(),
-    discordClientSecret: parsed.data.discordClientSecret.trim(),
-  });
-
-  return NextResponse.json({
-    ok: true,
-    redirectUri: `${siteUrl}/api/auth/callback/discord`,
-  });
 }

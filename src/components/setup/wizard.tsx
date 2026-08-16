@@ -46,7 +46,7 @@ export function SetupWizard() {
 
   async function refreshStatus() {
     const res = await fetch("/api/setup/status");
-    const data = (await res.json()) as Status;
+    const data = await readJson<Status>(res);
     setStatus(data);
     if (data.siteUrl) setSiteUrl(data.siteUrl);
     if (data.hasDiscord && !data.hasAdmin) setStep("2");
@@ -94,9 +94,9 @@ export function SetupWizard() {
           discordClientSecret: clientSecret,
         }),
       });
-      const data = await res.json();
+      const data = await readJson<{ error?: string; redirectUri?: string }>(res);
       if (!res.ok) throw new Error(data.error || "Kayıt başarısız");
-      setRedirectUri(data.redirectUri);
+      setRedirectUri(data.redirectUri || "");
       setStep("2");
       await refreshStatus();
     } catch (err) {
@@ -111,7 +111,7 @@ export function SetupWizard() {
     setError(null);
     try {
       const res = await fetch("/api/setup/admin", { method: "POST" });
-      const data = await res.json();
+      const data = await readJson<{ error?: string }>(res);
       if (!res.ok) throw new Error(data.error || "Admin kaydı başarısız");
       setStep("3");
       await refreshStatus();
@@ -127,7 +127,7 @@ export function SetupWizard() {
     setError(null);
     try {
       const res = await fetch("/api/setup/dev-bypass", { method: "POST" });
-      const data = await res.json();
+      const data = await readJson<{ error?: string }>(res);
       if (!res.ok) throw new Error(data.error || "Dev bypass başarısız");
       await signIn("dev", { unlock: "1", callbackUrl: "/" });
     } catch (err) {
@@ -146,7 +146,7 @@ export function SetupWizard() {
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify(mysql),
       });
-      const data = await res.json();
+      const data = await readJson<{ error?: string }>(res);
       if (!res.ok) throw new Error(data.error || "MySQL kurulumu başarısız");
       router.replace("/");
       router.refresh();
@@ -450,3 +450,19 @@ const buttonClass =
 
 const secondaryButtonClass =
   "inline-flex items-center justify-center rounded-xl border border-[var(--border)] bg-transparent px-4 py-2.5 text-sm font-medium transition hover:bg-white/5";
+
+async function readJson<T>(res: Response): Promise<T> {
+  const text = await res.text();
+  if (!text) {
+    throw new Error(
+      `Sunucu boş cevap döndü (HTTP ${res.status}). Vercel'de wizard yerine Environment Variables kullan.`,
+    );
+  }
+  try {
+    return JSON.parse(text) as T;
+  } catch {
+    throw new Error(
+      `Geçersiz sunucu cevabı (HTTP ${res.status}). Vercel'de SETUP_COMPLETED=1 ve diğer env'leri ekleyip redeploy et.`,
+    );
+  }
+}
