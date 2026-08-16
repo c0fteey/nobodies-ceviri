@@ -32,7 +32,7 @@ export default async function RootLayout({
 
   return (
     <html lang="tr" className={`${outfit.variable} h-full`} suppressHydrationWarning>
-      <body className="min-h-full antialiased">
+      <body className="flex min-h-full flex-col antialiased">
         <Providers>{children}</Providers>
       </body>
     </html>
