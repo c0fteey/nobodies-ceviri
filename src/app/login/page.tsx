@@ -52,7 +52,27 @@ export default async function LoginPage({
 
         {params.error ? (
           <div className="mt-4 rounded-xl border border-rose-500/30 bg-rose-500/10 px-3 py-2 text-sm text-rose-300">
-            Giriş reddedildi. Bu hesap admin değil veya Discord yetkilendirmesi başarısız.
+            {params.error === "AccessDenied" ? (
+              <>
+                Bu Discord hesabı admin değil. Vercel’deki{" "}
+                <code className="text-rose-200">ADMIN_DISCORD_ID</code>, senin
+                Discord <strong>kullanıcı</strong> ID’n olmalı (Application Client
+                ID değil).
+              </>
+            ) : params.error === "Configuration" ? (
+              <>
+                Discord OAuth ayarı hatalı. Client ID/Secret veya{" "}
+                <code className="text-rose-200">AUTH_URL</code> / Redirect URI
+                kontrol et.
+              </>
+            ) : (
+              <>
+                Giriş başarısız ({params.error}). Discord Redirect URI:{" "}
+                <code className="break-all text-rose-200">
+                  https://nobodiesceviri.vercel.app/api/auth/callback/discord
+                </code>
+              </>
+            )}
           </div>
         ) : null}
 

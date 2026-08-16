@@ -104,11 +104,40 @@ export const { handlers, auth, signIn, signOut } = NextAuth(async () => {
     },
     providers,
     callbacks: {
+      async signIn({ account, profile }) {
+        if (account?.provider === "dev") {
+          return isDevBypassEnabled();
+        }
+
+        const latest = await getConfig();
+        // Discord kullanıcı ID — profile.id bazen gelmez; providerAccountId güvenilir
+        const discordId = String(
+          account?.providerAccountId ||
+            (profile as { id?: string } | undefined)?.id ||
+            "",
+        ).trim();
+        if (!discordId) return false;
+
+        if (!latest.setupCompleted) {
+          return Boolean(latest.discordClientId && latest.discordClientSecret);
+        }
+
+        const adminId = String(
+          latest.adminDiscordId || process.env.ADMIN_DISCORD_ID || "",
+        ).trim();
+
+        return Boolean(adminId) && discordId === adminId;
+      },
       async jwt({ token, profile, account, user }) {
-        if (account?.provider === "discord" && profile) {
-          const discordProfile = profile as { id?: string; username?: string };
-          token.sub = discordProfile.id ?? token.sub;
-          token.name = discordProfile.username ?? token.name;
+        if (account?.provider === "discord") {
+          const discordProfile = profile as
+            | { id?: string; username?: string }
+            | undefined;
+          token.sub =
+            account.providerAccountId ||
+            discordProfile?.id ||
+            token.sub;
+          token.name = discordProfile?.username ?? token.name;
         }
         if (account?.provider === "dev" && user) {
           token.sub = user.id;
@@ -122,23 +151,6 @@ export const { handlers, auth, signIn, signOut } = NextAuth(async () => {
           session.user.name = token.name;
         }
         return session;
-      },
-      async signIn({ account, profile }) {
-        if (account?.provider === "dev") {
-          return isDevBypassEnabled();
-        }
-
-        const latest = await getConfig();
-        const discordId = (profile as { id?: string } | undefined)?.id;
-        if (!discordId) return false;
-
-        if (!latest.setupCompleted) {
-          return Boolean(latest.discordClientId && latest.discordClientSecret);
-        }
-
-        const adminId =
-          latest.adminDiscordId || process.env.ADMIN_DISCORD_ID || "";
-        return discordId === adminId;
       },
     },
     pages: {
