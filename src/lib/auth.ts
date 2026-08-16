@@ -57,8 +57,10 @@ export const { handlers, auth, signIn, signOut } = NextAuth(() => {
       Discord({
         clientId,
         clientSecret,
+        // Vercel'de PKCE cookie kaybolunca Configuration hatası oluşuyor
+        checks: ["state"],
         authorization: {
-          params: { scope: "identify email" },
+          params: { scope: "identify" },
         },
       }),
     );
@@ -86,11 +88,9 @@ export const { handlers, auth, signIn, signOut } = NextAuth(() => {
   }
 
   return {
-    // Vercel proxy / custom domain için şart
     trustHost: true,
     secret: cleanEnv(process.env.AUTH_SECRET) || undefined,
     session: { strategy: "jwt" },
-    // Özel cookie ayarı CSRF'yi bozabiliyor — Auth.js varsayılanı kullan
     providers,
     callbacks: {
       async signIn({ account, profile }) {
@@ -106,7 +106,6 @@ export const { handlers, auth, signIn, signOut } = NextAuth(() => {
         if (!discordId) return false;
 
         if (!setupDone) {
-          // Local wizard aşaması
           try {
             const cfg = await getConfig();
             return Boolean(cfg.discordClientId && cfg.discordClientSecret);
@@ -145,6 +144,11 @@ export const { handlers, auth, signIn, signOut } = NextAuth(() => {
       signIn: "/login",
       error: "/login",
     },
-    debug: process.env.NODE_ENV === "development",
+    debug: process.env.AUTH_DEBUG === "1",
+    logger: {
+      error(error) {
+        console.error("[auth][error]", error);
+      },
+    },
   };
 });
