@@ -1,11 +1,15 @@
 "use client";
 
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import type { ModAction } from "@/lib/nmonitor";
+import { ListPagination, usePagedSlice } from "@/components/ui/list-pagination";
 import { Search, Shield } from "lucide-react";
+
+const PAGE_SIZE = 5;
 
 export function ModLogs({ actions }: { actions: ModAction[] }) {
   const [query, setQuery] = useState("");
+  const [page, setPage] = useState(1);
 
   const filtered = useMemo(() => {
     const q = query.trim().toLowerCase();
@@ -18,8 +22,18 @@ export function ModLogs({ actions }: { actions: ModAction[] }) {
     });
   }, [query, actions]);
 
+  useEffect(() => {
+    setPage(1);
+  }, [query]);
+
+  const { pageItems, totalPages, page: safePage } = usePagedSlice(
+    filtered,
+    page,
+    PAGE_SIZE,
+  );
+
   return (
-    <section className="rounded-2xl border border-[var(--border)] bg-[var(--card)] p-5 sm:p-6">
+    <section className="flex h-full flex-col rounded-2xl border border-[var(--border)] bg-[var(--card)] p-5 sm:p-6">
       <div className="mb-5 flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
         <div className="flex items-start gap-3">
           <div className="rounded-xl bg-rose-500/15 p-2.5 text-rose-400">
@@ -28,7 +42,7 @@ export function ModLogs({ actions }: { actions: ModAction[] }) {
           <div>
             <h2 className="text-lg font-semibold">Son Moderasyon İşlemleri</h2>
             <p className="mt-1 text-sm text-[var(--muted)]">
-              Yakın zamanda uygulanan cezalar
+              Yakın zamanda uygulanan cezalar · sayfa başı {PAGE_SIZE}
             </p>
           </div>
         </div>
@@ -46,15 +60,15 @@ export function ModLogs({ actions }: { actions: ModAction[] }) {
         </label>
       </div>
 
-      <ul className="space-y-3">
-        {filtered.length === 0 ? (
+      <ul className="min-h-[280px] flex-1 space-y-3">
+        {pageItems.length === 0 ? (
           <li className="rounded-xl px-2 py-6 text-center text-sm text-[var(--muted)]">
             {query
               ? `“${query}” için sonuç yok.`
               : "Henüz moderasyon kaydı yok."}
           </li>
         ) : (
-          filtered.map((log) => (
+          pageItems.map((log) => (
             <li
               key={log.id}
               className="flex flex-col gap-1 rounded-xl border border-transparent px-2 py-2 transition hover:border-[var(--border)] hover:bg-white/[0.03] sm:flex-row sm:items-center sm:justify-between"
@@ -75,6 +89,12 @@ export function ModLogs({ actions }: { actions: ModAction[] }) {
           ))
         )}
       </ul>
+
+      <ListPagination
+        page={safePage}
+        totalPages={totalPages}
+        onPageChange={setPage}
+      />
     </section>
   );
 }

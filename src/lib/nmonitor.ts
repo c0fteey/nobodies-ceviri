@@ -172,7 +172,7 @@ export async function getDashboardData(): Promise<DashboardData> {
           SELECT id, staff_name, target_name, action, reason, created_at
           FROM nmonitor_mod_actions
           ORDER BY created_at DESC
-          LIMIT 50
+          LIMIT 200
         `.catch(() => [] as ModRow[]),
       ]);
 

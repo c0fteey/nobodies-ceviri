@@ -1,7 +1,31 @@
 import type { WeeklyLeader } from "@/lib/nmonitor";
+import { cn } from "@/lib/utils";
 import { Activity } from "lucide-react";
 
+const rankStyles: Record<number, string> = {
+  1: "bg-amber-400/20 text-amber-300 ring-1 ring-amber-400/35 shadow-[0_0_12px_-4px_rgba(251,191,36,0.55)]",
+  2: "bg-slate-300/15 text-slate-200 ring-1 ring-slate-300/30",
+  3: "bg-orange-500/15 text-orange-300 ring-1 ring-orange-400/30",
+};
+
+function RankBadge({ rank }: { rank: number }) {
+  return (
+    <span
+      className={cn(
+        "flex h-8 w-8 shrink-0 items-center justify-center rounded-full text-xs font-bold tabular-nums tracking-tight",
+        rankStyles[rank] ??
+          "bg-white/[0.04] text-[var(--muted)] ring-1 ring-[var(--border)]",
+      )}
+      aria-label={`${rank}. sıra`}
+    >
+      {rank}
+    </span>
+  );
+}
+
 export function Leaderboard({ leaders }: { leaders: WeeklyLeader[] }) {
+  const top5 = leaders.slice(0, 5);
+
   return (
     <section className="rounded-2xl border border-[var(--border)] bg-[var(--card)] p-5 sm:p-6">
       <div className="mb-5 flex items-start gap-3">
@@ -16,20 +40,18 @@ export function Leaderboard({ leaders }: { leaders: WeeklyLeader[] }) {
         </div>
       </div>
 
-      {leaders.length === 0 ? (
+      {top5.length === 0 ? (
         <p className="rounded-xl px-2 py-8 text-center text-sm text-[var(--muted)]">
           Henüz yetkili süresi kaydı yok. Plugin online olunca burada görünecek.
         </p>
       ) : (
         <ul className="space-y-3">
-          {leaders.map((staff) => (
+          {top5.map((staff) => (
             <li
               key={staff.uuid}
               className="flex items-center gap-3 rounded-xl border border-transparent px-2 py-2 transition hover:border-[var(--border)] hover:bg-white/[0.03]"
             >
-              <span className="w-6 text-sm font-medium text-[var(--muted)]">
-                {staff.rank}
-              </span>
+              <RankBadge rank={staff.rank} />
               {/* eslint-disable-next-line @next/next/no-img-element */}
               <img
                 src={`https://mc-heads.net/avatar/${staff.name}/40`}

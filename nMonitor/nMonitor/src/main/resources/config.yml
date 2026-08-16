@@ -1,0 +1,50 @@
+# nMonitor - NBDSxStaffTracker
+# TiDB / MySQL bağlantısı (Vercel sitesi ile AYNI database)
+
+mysql:
+  host: "gateway01.eu-central-1.prod.aws.tidbcloud.com"
+  port: 4000
+  database: "nbdsx_staff"
+  username: "4TKKXSLCmYxn1yC.root"
+  password: "lc9EV3kSvxrEtyJX"
+  use-ssl: true
+  pool-size: 5
+  max-lifetime-ms: 1800000
+  connection-timeout-ms: 10000
+
+server-name: "survival"
+
+staff:
+  # LuckPerms grupları (softdepend)
+  luckperms-groups:
+    - "helper"
+    - "mod"
+    - "moderator"
+    - "admin"
+    - "rehber"
+  # Permission ile de sayılır
+  permission: "nmonitor.staff"
+  # Haftalık süre sıfırlama: ISO hafta (Pazartesi)
+  week-reset-day: MONDAY
+
+heartbeat:
+  enabled: true
+  interval-seconds: 15
+  # Site bu süreden eski heartbeat'i offline sayar
+  stale-after-seconds: 45
+
+playtime:
+  # Kaç saniyede bir DB'ye flush
+  flush-interval-seconds: 60
+
+litebans:
+  enabled: true
+  # Ban, Mute, Warn, Kick
+  track-types:
+    - BAN
+    - MUTE
+    - WARN
+    - KICK
+
+messages-file: "messages.yml"
+debug: false
