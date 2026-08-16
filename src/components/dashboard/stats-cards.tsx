@@ -40,11 +40,11 @@ export function StatsCards({ stats }: { stats: DashboardStat[] }) {
             />
             <div className="relative flex items-start justify-between gap-3">
               <div>
-                <p className="text-sm text-[var(--muted)]">{stat.label}</p>
+                <p className="text-sm  text-white">{stat.label}</p>
                 <p className="mt-2 text-3xl font-semibold tracking-tight">
                   {stat.value}
                 </p>
-                <p className="mt-2 text-xs leading-relaxed text-[var(--muted)]">
+                <p className="mt-2 text-xs leading-relaxed text-white">
                   {stat.hint}
                 </p>
               </div>
