@@ -16,22 +16,11 @@ declare module "next-auth" {
   }
 }
 
-const isProd =
-  process.env.NODE_ENV === "production" || Boolean(process.env.VERCEL);
-
-const cookieOptions = {
-  httpOnly: true,
-  sameSite: "lax" as const,
-  path: "/",
-  secure: isProd,
-};
-
 function cleanEnv(value: string | undefined) {
   return (value || "").trim().replace(/^["']|["']$/g, "");
 }
 
-export const { handlers, auth, signIn, signOut } = NextAuth(async () => {
-  // Vercel'e tırnaklı yapıştırılan env'leri temizle
+function sanitizeAuthEnv() {
   for (const key of [
     "AUTH_URL",
     "NEXTAUTH_URL",
@@ -45,55 +34,35 @@ export const { handlers, auth, signIn, signOut } = NextAuth(async () => {
       process.env[key] = cleanEnv(process.env[key]);
     }
   }
+}
 
-  // Vercel'de provider bilgisi önce env'den (getConfig DB hatası OAuth'u bozmasın)
-  let fileOrDb = {
-    discordClientId: "",
-    discordClientSecret: "",
-    adminDiscordId: "",
-    setupCompleted: false,
-  };
-  try {
-    const cfg = await getConfig();
-    fileOrDb = {
-      discordClientId: cfg.discordClientId,
-      discordClientSecret: cfg.discordClientSecret,
-      adminDiscordId: cfg.adminDiscordId,
-      setupCompleted: cfg.setupCompleted,
-    };
-  } catch {
-    // ignore — env yeterli
-  }
+export const { handlers, auth, signIn, signOut } = NextAuth(() => {
+  sanitizeAuthEnv();
 
   const clientId = cleanEnv(
-    process.env.AUTH_DISCORD_ID ||
-      process.env.DISCORD_CLIENT_ID ||
-      fileOrDb.discordClientId,
+    process.env.AUTH_DISCORD_ID || process.env.DISCORD_CLIENT_ID,
   );
   const clientSecret = cleanEnv(
-    process.env.AUTH_DISCORD_SECRET ||
-      process.env.DISCORD_CLIENT_SECRET ||
-      fileOrDb.discordClientSecret,
+    process.env.AUTH_DISCORD_SECRET || process.env.DISCORD_CLIENT_SECRET,
   );
-  const adminId = cleanEnv(
-    process.env.ADMIN_DISCORD_ID || fileOrDb.adminDiscordId,
-  );
+  const adminId = cleanEnv(process.env.ADMIN_DISCORD_ID);
+  const setupDone =
+    process.env.SETUP_COMPLETED === "1" ||
+    process.env.SETUP_COMPLETED === "true";
 
-  if (!clientId || !clientSecret) {
-    console.error(
-      "[auth] Discord Client ID/Secret eksik. Vercel Environment Variables kontrol et.",
+  const providers: Provider[] = [];
+
+  if (clientId && clientSecret) {
+    providers.push(
+      Discord({
+        clientId,
+        clientSecret,
+        authorization: {
+          params: { scope: "identify email" },
+        },
+      }),
     );
   }
-
-  const providers: Provider[] = [
-    Discord({
-      clientId: clientId || "missing-client-id",
-      clientSecret: clientSecret || "missing-client-secret",
-      authorization: {
-        params: { scope: "identify email" },
-      },
-    }),
-  ];
 
   if (isDevBypassEnabled()) {
     providers.push(
@@ -117,28 +86,11 @@ export const { handlers, auth, signIn, signOut } = NextAuth(async () => {
   }
 
   return {
+    // Vercel proxy / custom domain için şart
     trustHost: true,
     secret: cleanEnv(process.env.AUTH_SECRET) || undefined,
     session: { strategy: "jwt" },
-    useSecureCookies: isProd,
-    cookies: {
-      sessionToken: {
-        name: isProd
-          ? "__Secure-authjs.session-token"
-          : "authjs.session-token",
-        options: cookieOptions,
-      },
-      callbackUrl: {
-        name: isProd
-          ? "__Secure-authjs.callback-url"
-          : "authjs.callback-url",
-        options: cookieOptions,
-      },
-      csrfToken: {
-        name: isProd ? "__Host-authjs.csrf-token" : "authjs.csrf-token",
-        options: { ...cookieOptions, secure: isProd },
-      },
-    },
+    // Özel cookie ayarı CSRF'yi bozabiliyor — Auth.js varsayılanı kullan
     providers,
     callbacks: {
       async signIn({ account, profile }) {
@@ -153,16 +105,18 @@ export const { handlers, auth, signIn, signOut } = NextAuth(async () => {
         ).trim();
         if (!discordId) return false;
 
-        const setupDone =
-          fileOrDb.setupCompleted ||
-          process.env.SETUP_COMPLETED === "1" ||
-          process.env.SETUP_COMPLETED === "true";
-
         if (!setupDone) {
-          return Boolean(clientId && clientSecret);
+          // Local wizard aşaması
+          try {
+            const cfg = await getConfig();
+            return Boolean(cfg.discordClientId && cfg.discordClientSecret);
+          } catch {
+            return Boolean(clientId && clientSecret);
+          }
         }
 
-        return Boolean(adminId) && discordId === adminId;
+        const allowed = adminId || cleanEnv(process.env.ADMIN_DISCORD_ID);
+        return Boolean(allowed) && discordId === allowed;
       },
       async jwt({ token, profile, account, user }) {
         if (account?.provider === "discord") {
@@ -191,5 +145,6 @@ export const { handlers, auth, signIn, signOut } = NextAuth(async () => {
       signIn: "/login",
       error: "/login",
     },
+    debug: process.env.NODE_ENV === "development",
   };
 });
