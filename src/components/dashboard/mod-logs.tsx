@@ -1,28 +1,22 @@
 "use client";
 
 import { useMemo, useState } from "react";
+import type { ModAction } from "@/lib/nmonitor";
 import { Search, Shield } from "lucide-react";
-import { recentModActions } from "@/lib/mock-data";
 
-export function ModLogs() {
+export function ModLogs({ actions }: { actions: ModAction[] }) {
   const [query, setQuery] = useState("");
 
   const filtered = useMemo(() => {
     const q = query.trim().toLowerCase();
-    if (!q) return recentModActions;
-    return recentModActions.filter((log) => {
-      const haystack = [
-        log.staff,
-        log.target,
-        log.action,
-        log.reason,
-        log.at,
-      ]
+    if (!q) return actions;
+    return actions.filter((log) => {
+      const haystack = [log.staff, log.target, log.action, log.reason, log.at]
         .join(" ")
         .toLowerCase();
       return haystack.includes(q);
     });
-  }, [query]);
+  }, [query, actions]);
 
   return (
     <section className="rounded-2xl border border-[var(--border)] bg-[var(--card)] p-5 sm:p-6">
@@ -55,12 +49,14 @@ export function ModLogs() {
       <ul className="space-y-3">
         {filtered.length === 0 ? (
           <li className="rounded-xl px-2 py-6 text-center text-sm text-[var(--muted)]">
-            “{query}” için sonuç yok.
+            {query
+              ? `“${query}” için sonuç yok.`
+              : "Henüz moderasyon kaydı yok."}
           </li>
         ) : (
           filtered.map((log) => (
             <li
-              key={`${log.staff}-${log.target}-${log.at}`}
+              key={log.id}
               className="flex flex-col gap-1 rounded-xl border border-transparent px-2 py-2 transition hover:border-[var(--border)] hover:bg-white/[0.03] sm:flex-row sm:items-center sm:justify-between"
             >
               <div>

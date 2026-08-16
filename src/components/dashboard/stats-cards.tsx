@@ -1,5 +1,5 @@
+import type { DashboardStat } from "@/lib/nmonitor";
 import { AlertCircle, Gavel, TrendingUp, Users } from "lucide-react";
-import { dashboardStats } from "@/lib/mock-data";
 import { cn } from "@/lib/utils";
 
 const icons = {
@@ -16,11 +16,11 @@ const accents = {
   purple: "from-violet-400/30 via-violet-400/5 to-transparent text-violet-400 border-violet-400/20",
 };
 
-export function StatsCards() {
+export function StatsCards({ stats }: { stats: DashboardStat[] }) {
   return (
     <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
-      {dashboardStats.map((stat) => {
-        const Icon = icons[stat.id as keyof typeof icons];
+      {stats.map((stat) => {
+        const Icon = icons[stat.id];
         return (
           <article
             key={stat.id}
@@ -32,7 +32,10 @@ export function StatsCards() {
             <div
               className={cn(
                 "pointer-events-none absolute inset-x-0 top-0 h-24 bg-gradient-to-b",
-                accents[stat.accent].split(" ").filter((c) => c.startsWith("from-") || c.startsWith("via-") || c.startsWith("to-")).join(" "),
+                accents[stat.accent]
+                  .split(" ")
+                  .filter((c) => c.startsWith("from-") || c.startsWith("via-") || c.startsWith("to-"))
+                  .join(" "),
               )}
             />
             <div className="relative flex items-start justify-between gap-3">
@@ -48,7 +51,10 @@ export function StatsCards() {
               <div
                 className={cn(
                   "rounded-xl border bg-black/20 p-2.5",
-                  accents[stat.accent].split(" ").filter((c) => c.startsWith("text-") || c.startsWith("border-")).join(" "),
+                  accents[stat.accent]
+                    .split(" ")
+                    .filter((c) => c.startsWith("text-") || c.startsWith("border-"))
+                    .join(" "),
                 )}
               >
                 <Icon className="h-5 w-5" />

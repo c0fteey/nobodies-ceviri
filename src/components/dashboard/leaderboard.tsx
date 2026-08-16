@@ -1,7 +1,7 @@
+import type { WeeklyLeader } from "@/lib/nmonitor";
 import { Activity } from "lucide-react";
-import { weeklyLeaders } from "@/lib/mock-data";
 
-export function Leaderboard() {
+export function Leaderboard({ leaders }: { leaders: WeeklyLeader[] }) {
   return (
     <section className="rounded-2xl border border-[var(--border)] bg-[var(--card)] p-5 sm:p-6">
       <div className="mb-5 flex items-start gap-3">
@@ -16,33 +16,39 @@ export function Leaderboard() {
         </div>
       </div>
 
-      <ul className="space-y-3">
-        {weeklyLeaders.map((staff) => (
-          <li
-            key={staff.name}
-            className="flex items-center gap-3 rounded-xl border border-transparent px-2 py-2 transition hover:border-[var(--border)] hover:bg-white/[0.03]"
-          >
-            <span className="w-6 text-sm font-medium text-[var(--muted)]">
-              {staff.rank}
-            </span>
-            {/* eslint-disable-next-line @next/next/no-img-element */}
-            <img
-              src={`https://mc-heads.net/avatar/${staff.name}/40`}
-              alt={staff.name}
-              width={40}
-              height={40}
-              className="rounded-lg"
-            />
-            <div className="min-w-0 flex-1">
-              <p className="truncate font-medium">{staff.name}</p>
-              <p className="text-xs text-[var(--muted)]">{staff.role}</p>
-            </div>
-            <span className="text-sm font-semibold text-emerald-400">
-              {staff.time}
-            </span>
-          </li>
-        ))}
-      </ul>
+      {leaders.length === 0 ? (
+        <p className="rounded-xl px-2 py-8 text-center text-sm text-[var(--muted)]">
+          Henüz yetkili süresi kaydı yok. Plugin online olunca burada görünecek.
+        </p>
+      ) : (
+        <ul className="space-y-3">
+          {leaders.map((staff) => (
+            <li
+              key={staff.uuid}
+              className="flex items-center gap-3 rounded-xl border border-transparent px-2 py-2 transition hover:border-[var(--border)] hover:bg-white/[0.03]"
+            >
+              <span className="w-6 text-sm font-medium text-[var(--muted)]">
+                {staff.rank}
+              </span>
+              {/* eslint-disable-next-line @next/next/no-img-element */}
+              <img
+                src={`https://mc-heads.net/avatar/${staff.name}/40`}
+                alt={staff.name}
+                width={40}
+                height={40}
+                className="rounded-lg"
+              />
+              <div className="min-w-0 flex-1">
+                <p className="truncate font-medium">{staff.name}</p>
+                <p className="text-xs text-[var(--muted)]">{staff.role}</p>
+              </div>
+              <span className="text-sm font-semibold text-emerald-400">
+                {staff.time}
+              </span>
+            </li>
+          ))}
+        </ul>
+      )}
     </section>
   );
 }

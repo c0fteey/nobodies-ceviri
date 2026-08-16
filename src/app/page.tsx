@@ -1,9 +1,16 @@
 import { StatsCards } from "@/components/dashboard/stats-cards";
 import { Leaderboard } from "@/components/dashboard/leaderboard";
 import { ModLogs } from "@/components/dashboard/mod-logs";
+import { PluginStatusBanner } from "@/components/dashboard/plugin-status-banner";
 import { PanelShell } from "@/components/panel-shell";
+import { getDashboardData } from "@/lib/nmonitor";
 
-export default function DashboardPage() {
+export const dynamic = "force-dynamic";
+export const revalidate = 0;
+
+export default async function DashboardPage() {
+  const data = await getDashboardData();
+
   return (
     <PanelShell>
       <section className="relative mb-6 overflow-hidden rounded-3xl bg-gradient-to-r from-[var(--hero-from)] to-[var(--hero-to)] px-6 py-8 shadow-[inset_0_1px_0_0_rgba(255,255,255,0.06)] sm:px-8">
@@ -16,11 +23,12 @@ export default function DashboardPage() {
         </p>
       </section>
 
-      <StatsCards />
+      <PluginStatusBanner plugin={data.plugin} />
+      <StatsCards stats={data.stats} />
 
       <div className="mt-6 grid gap-6 lg:grid-cols-2">
-        <Leaderboard />
-        <ModLogs />
+        <Leaderboard leaders={data.leaders} />
+        <ModLogs actions={data.modActions} />
       </div>
     </PanelShell>
   );
