@@ -16,7 +16,8 @@ declare module "next-auth" {
   }
 }
 
-const isProd = process.env.NODE_ENV === "production" || Boolean(process.env.VERCEL);
+const isProd =
+  process.env.NODE_ENV === "production" || Boolean(process.env.VERCEL);
 
 const cookieOptions = {
   httpOnly: true,
@@ -25,33 +26,69 @@ const cookieOptions = {
   secure: isProd,
 };
 
+function cleanEnv(value: string | undefined) {
+  return (value || "").trim().replace(/^["']|["']$/g, "");
+}
+
 export const { handlers, auth, signIn, signOut } = NextAuth(async () => {
-  const config = await getConfig();
+  // Vercel'e tırnaklı yapıştırılan env'leri temizle
+  for (const key of [
+    "AUTH_URL",
+    "NEXTAUTH_URL",
+    "AUTH_SECRET",
+    "AUTH_DISCORD_ID",
+    "AUTH_DISCORD_SECRET",
+    "ADMIN_DISCORD_ID",
+    "AUTH_TRUST_HOST",
+  ] as const) {
+    if (process.env[key]) {
+      process.env[key] = cleanEnv(process.env[key]);
+    }
+  }
 
-  const authUrl = (
-    process.env.AUTH_URL ||
-    process.env.NEXTAUTH_URL ||
-    config.siteUrl ||
-    ""
-  ).replace(/\/$/, "");
+  // Vercel'de provider bilgisi önce env'den (getConfig DB hatası OAuth'u bozmasın)
+  let fileOrDb = {
+    discordClientId: "",
+    discordClientSecret: "",
+    adminDiscordId: "",
+    setupCompleted: false,
+  };
+  try {
+    const cfg = await getConfig();
+    fileOrDb = {
+      discordClientId: cfg.discordClientId,
+      discordClientSecret: cfg.discordClientSecret,
+      adminDiscordId: cfg.adminDiscordId,
+      setupCompleted: cfg.setupCompleted,
+    };
+  } catch {
+    // ignore — env yeterli
+  }
 
-  if (authUrl) {
-    process.env.AUTH_URL = authUrl;
-    process.env.NEXTAUTH_URL = authUrl;
+  const clientId = cleanEnv(
+    process.env.AUTH_DISCORD_ID ||
+      process.env.DISCORD_CLIENT_ID ||
+      fileOrDb.discordClientId,
+  );
+  const clientSecret = cleanEnv(
+    process.env.AUTH_DISCORD_SECRET ||
+      process.env.DISCORD_CLIENT_SECRET ||
+      fileOrDb.discordClientSecret,
+  );
+  const adminId = cleanEnv(
+    process.env.ADMIN_DISCORD_ID || fileOrDb.adminDiscordId,
+  );
+
+  if (!clientId || !clientSecret) {
+    console.error(
+      "[auth] Discord Client ID/Secret eksik. Vercel Environment Variables kontrol et.",
+    );
   }
 
   const providers: Provider[] = [
     Discord({
-      clientId:
-        config.discordClientId ||
-        process.env.AUTH_DISCORD_ID ||
-        process.env.DISCORD_CLIENT_ID ||
-        "pending",
-      clientSecret:
-        config.discordClientSecret ||
-        process.env.AUTH_DISCORD_SECRET ||
-        process.env.DISCORD_CLIENT_SECRET ||
-        "pending",
+      clientId: clientId || "missing-client-id",
+      clientSecret: clientSecret || "missing-client-secret",
       authorization: {
         params: { scope: "identify email" },
       },
@@ -81,7 +118,7 @@ export const { handlers, auth, signIn, signOut } = NextAuth(async () => {
 
   return {
     trustHost: true,
-    secret: process.env.AUTH_SECRET,
+    secret: cleanEnv(process.env.AUTH_SECRET) || undefined,
     session: { strategy: "jwt" },
     useSecureCookies: isProd,
     cookies: {
@@ -109,8 +146,6 @@ export const { handlers, auth, signIn, signOut } = NextAuth(async () => {
           return isDevBypassEnabled();
         }
 
-        const latest = await getConfig();
-        // Discord kullanıcı ID — profile.id bazen gelmez; providerAccountId güvenilir
         const discordId = String(
           account?.providerAccountId ||
             (profile as { id?: string } | undefined)?.id ||
@@ -118,13 +153,14 @@ export const { handlers, auth, signIn, signOut } = NextAuth(async () => {
         ).trim();
         if (!discordId) return false;
 
-        if (!latest.setupCompleted) {
-          return Boolean(latest.discordClientId && latest.discordClientSecret);
-        }
+        const setupDone =
+          fileOrDb.setupCompleted ||
+          process.env.SETUP_COMPLETED === "1" ||
+          process.env.SETUP_COMPLETED === "true";
 
-        const adminId = String(
-          latest.adminDiscordId || process.env.ADMIN_DISCORD_ID || "",
-        ).trim();
+        if (!setupDone) {
+          return Boolean(clientId && clientSecret);
+        }
 
         return Boolean(adminId) && discordId === adminId;
       },
@@ -134,9 +170,7 @@ export const { handlers, auth, signIn, signOut } = NextAuth(async () => {
             | { id?: string; username?: string }
             | undefined;
           token.sub =
-            account.providerAccountId ||
-            discordProfile?.id ||
-            token.sub;
+            account.providerAccountId || discordProfile?.id || token.sub;
           token.name = discordProfile?.username ?? token.name;
         }
         if (account?.provider === "dev" && user) {
